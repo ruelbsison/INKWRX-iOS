@@ -1,0 +1,287 @@
+#!/usr/bin/python
+
+# Copyright 2016 Bugsee, Inc. All rights reserved.
+#
+# Usage:
+#   * In the project editor, select your target.
+#   * Click "Build Phases" at the top of the project editor.
+#   * Click "+" button in the top left corner.
+#   * Choose "New Run Script Phase."
+#   * Uncomment and paste the following script.
+#
+# --- INVOCATION SCRIPT BEGIN ---
+# SCRIPT_SRC=$(find "$PROJECT_DIR" -name 'BugseeAgent' | head -1)
+# if [ ! "${SCRIPT_SRC}" ]; then
+#   echo "Error: Bugsee build phase script not found. Make sure that you're including Bugsee.bundle in your project directory"
+#   exit 1
+# fi
+# /usr/bin/python "${SCRIPT_SRC}" <APP_TOKEN>
+# --- INVOCATION SCRIPT END ---
+
+import os
+import subprocess
+import zipfile
+import tempfile
+import sys
+import urllib2
+import re
+import json
+import shutil
+
+def isInUploadedList(images, imageList):
+    for image in images:
+        if (image in imageList):
+            return True
+    return False
+
+def saveUploadedList(images):
+    print "Storing identifiers so we won't upload them again"
+    with open(os.path.expanduser("~/.bugseeUploadList"), 'w+') as data_file:
+        json.dump(images, data_file)
+    return
+
+def loadUploadedList():
+    try:
+        with open(os.path.expanduser("~/.bugseeUploadList")) as data_file:
+            return json.load(data_file)
+    except Exception as error:
+        return []
+
+def parseDSYM(fullPath):
+    images = []
+    try:
+        out = subprocess.check_output(["/usr/bin/dwarfdump", "-u", fullPath], stderr=None)
+        # UUID: 598A8EC3-B348-36C6-8B3A-0390B247EFF2 (arm64) /Users/finik/Downloads/BugseeDev
+        lines = out.splitlines()
+
+        for line in lines:
+            searchObj = re.search(r'UUID: (.*) \((\w+)\)', line)
+            if (searchObj):
+                images.append(searchObj.group(1))
+
+    except subprocess.CalledProcessError as e:
+        return images
+
+    return images
+
+def getIcon():
+    try:
+        info_file_path = os.path.join(os.environ['TARGET_BUILD_DIR'], os.environ['INFOPLIST_PATH'])
+        info_file_dir = os.path.dirname(info_file_path)
+        # p = subprocess.Popen('/usr/libexec/PlistBuddy -c "Print :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconFiles" %s' % info_file_path,
+        #                  stdout=subprocess.PIPE, shell=True)
+
+        # stdout, stderr = p.communicate()
+        # icons = stdout.split()
+        # if len(icons) > 4:
+        #     return icons[2:-1]
+        icons = [   
+                    '114x114',
+                    '120x120', 'AppIcon60x60@2x', 'AppIcon40x40@3x',
+                    '144x144',
+                    '180x180', 'AppIcon60x60@3x',
+                    '87x87', 'AppIcon29x29@3x',
+                    '80x80', 'AppIcon40x40@2x',
+                    '72x72',
+                    '58x58', 'AppIcon29x29@2x',
+                    '57x57',
+                    '29x29'
+                ]
+
+        for icon in icons:
+            path = os.path.join(info_file_dir, icon + '.png')
+            if os.path.isfile(path):
+                return path
+
+    except Exception as error:
+        return None
+
+    return None
+
+def getVersionAndBuild():
+    try:
+        info_file_path = os.path.join(os.environ['TARGET_BUILD_DIR'], os.environ['INFOPLIST_PATH'])
+        p = subprocess.Popen('/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" -c "Print :CFBundleVersion" "%s"' % info_file_path,
+                         stdout=subprocess.PIPE, shell=True)
+
+        stdout, stderr = p.communicate()
+        version, build = stdout.split()
+    except Exception as error:
+        return (None, None)
+
+    return (version, build)
+
+def uncrushIcon(icon, tempDir):
+    try:
+        dest = os.path.join(tempDir, 'icon.png')
+        print "Uncrushing Icon PNG file to %s" % dest
+        cmd = '/usr/bin/xcrun pngcrush -revert-iphone-optimizations "'+ icon + '" "' + dest + '"'
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+
+        stdout, stderr = p.communicate()
+    except Exception as error:
+        return None
+
+    return dest
+
+def requestEndPoint(version, build):
+    data = json.dumps({
+        'version': version,
+        'build': build
+        })
+
+    req = urllib2.Request(baseURL + '/apps/' + APP_TOKEN + '/symbols', data, {'Content-Type': 'application/json'})
+    f = urllib2.urlopen(req)
+    response = f.read()
+    f.close()
+    return json.loads(response)
+
+def uploadBundle(endpoint, filePath):
+    # TODO: Change it to urllib2 as well
+    p = subprocess.Popen('curl -v -T "%s" "%s"' % (filePath, endpoint) + ' --write-out %{http_code} --silent --output /dev/null', 
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    stdout, stderr = p.communicate()
+    if stdout == '200':
+        return True
+
+    return False
+
+def updateStatus(symbolId):
+    data = json.dumps({
+        'status': 'uploading',
+        })
+
+    req = urllib2.Request(baseURL + '/symbols/' + symbolId + '/status', data, {'Content-Type': 'application/json'})
+    f = urllib2.urlopen(req)
+    response = f.read()
+    f.close()
+    r = json.loads(response)
+    if (r and r.get('ok')):
+        return True
+    return False
+
+def uploadZipFile(zipFileLocation):
+    version, build = getVersionAndBuild()
+
+    r = requestEndPoint(version, build)
+    if (r.get('ok') and r.get('endpoint')):
+        print "Uploading to %s" % r.get('endpoint')
+        res = uploadBundle(r.get('endpoint'), zipFileLocation)
+        if res:
+            print "Upload successfull, updating status"
+            return updateStatus(r.get('symbol_id'))
+
+    return False
+
+def main():
+    tempDir = tempfile.mkdtemp()
+    print "Processing in " + tempDir
+    zipFileLocation = os.path.join(tempDir, 'symbols.zip')
+    dwarfs = []
+    uploadedImages = loadUploadedList()
+
+    os.chdir(os.environ.get('DWARF_DSYM_FOLDER_PATH'))
+    for root, dirs, files in os.walk(os.environ.get('DWARF_DSYM_FOLDER_PATH')):
+        # if first level, remove all folder which do not have dSYM suffix
+        if root == os.environ.get('DWARF_DSYM_FOLDER_PATH'):
+            for dir in dirs[:]:
+                if (not dir.endswith('.dSYM')):
+                    dirs.remove(dir)
+            continue
+
+        for f in files:
+            if (os.path.islink(os.path.join(root, f))):
+                continue
+            if (os.stat(os.path.join(root, f)).st_size == 0):
+                continue
+            images = parseDSYM(os.path.join(root, f))
+            if (len(images) == 0):
+                continue
+            if isInUploadedList(images, uploadedImages):
+                print "Already uploaded %s, skipping" % f
+                continue
+            dwarfs.append(os.path.join(root, f))
+            uploadedImages.extend(images)
+
+    if len(dwarfs) > 0:
+        with zipfile.ZipFile(zipFileLocation, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for dwarf in dwarfs:
+                zipf.write(dwarf, os.path.basename(dwarf), zipfile.ZIP_DEFLATED)
+
+            icon = getIcon()
+            if icon:
+                icon = uncrushIcon(icon, tempDir)
+            if icon and os.path.isfile(icon):
+                zipf.write(icon, 'icon.png', zipfile.ZIP_DEFLATED)
+
+            zipf.close()
+
+        result = uploadZipFile(zipFileLocation)
+        if result:
+            saveUploadedList(uploadedImages)
+
+
+    # cleanup
+    shutil.rmtree(tempDir, ignore_errors=True)
+
+
+if __name__ == "__main__":
+    if os.environ.get('DEBUG_INFORMATION_FORMAT') != 'dwarf-with-dsym':
+        print "Bugsee:  DEBUG_INFORMATION_FORMAT is not set. Have you enabled debug symbols in your build? See: https://docs.bugsee.com/sdk/ios/symbolication/"
+        exit(0)
+
+    if os.environ.get('EFFECTIVE_PLATFORM_NAME') == '-iphonesimulator':
+        print "Bugsee:  Bugsee is not supoorted in iOS simulator. Will not upload debug symbols for i386!"
+        exit(0)
+
+    if (len(sys.argv) < 2):
+        print "Bugsee:  Not initialized with app token. Must be passed as a parameter"
+        exit(1)
+
+    APP_TOKEN = sys.argv[1]
+    
+    baseURL = 'https://api.bugsee.com'
+    if len(sys.argv) > 2:
+        baseURL = sys.argv[2]
+
+    # do the UNIX double-fork magic, see Stevens' "Advanced 
+    # Programming in the UNIX Environment" for details (ISBN 0201563177)
+    try: 
+        pid = os.fork() 
+        if pid > 0:
+            # exit first parent
+            sys.exit(0) 
+    except OSError, e: 
+        print >>sys.stderr, "fork #1 failed: %d (%s)" % (e.errno, e.strerror) 
+        sys.exit(1)
+
+    # decouple from parent environment
+    os.chdir("/") 
+    os.setsid() 
+    os.umask(0) 
+
+    # do second fork
+    try: 
+        pid = os.fork() 
+        if pid > 0:
+            # exit from second parent, print eventual PID before
+            print "Daemon PID %d" % pid 
+            sys.exit(0) 
+    except OSError, e: 
+        print >>sys.stderr, "fork #2 failed: %d (%s)" % (e.errno, e.strerror) 
+        sys.exit(1)
+
+    # redirect standard file descriptors
+    outputFile = os.path.join(os.environ['PROJECT_TEMP_DIR'], "BugseeAgent.log")
+    print "Detaching STDOUT, logs can be found in %s" % (outputFile)
+    sys.stdout.flush()
+    sys.stderr.flush()
+    si = file("/dev/null", 'r')
+    so = file(outputFile, 'w+')
+    se = file("/dev/null", 'w+', 0)
+    os.dup2(si.fileno(), sys.stdin.fileno())
+    os.dup2(so.fileno(), sys.stdout.fileno())
+    os.dup2(se.fileno(), sys.stderr.fileno())
+
+    # start the daemon main loop
+    main() 

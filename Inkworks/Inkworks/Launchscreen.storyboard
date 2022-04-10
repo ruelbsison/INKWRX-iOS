@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="10116" systemVersion="15F34" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" initialViewController="xD5-AM-L7y">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="10085"/>
+        <capability name="Constraints to layout margins" minToolsVersion="6.0"/>
+    </dependencies>
+    <customFonts key="customFonts">
+        <mutableArray key="Lato-Regular.ttf">
+            <string>Lato-Regular</string>
+        </mutableArray>
+    </customFonts>
+    <scenes>
+        <!--Launch-->
+        <scene sceneID="3of-2a-gLo">
+            <objects>
+                <viewController title="Launch" id="xD5-AM-L7y" sceneMemberID="viewController">
+                    <layoutGuides>
+                        <viewControllerLayoutGuide type="top" id="yyv-uE-0NZ"/>
+                        <viewControllerLayoutGuide type="bottom" id="Yx6-G1-fGR"/>
+                    </layoutGuides>
+                    <view key="view" contentMode="scaleToFill" id="W01-2w-FOf">
+                        <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="login_background.png" translatesAutoresizingMaskIntoConstraints="NO" id="yg4-hv-Bj0">
+                                <rect key="frame" x="0.0" y="0.0" width="768" height="1024"/>
+                            </imageView>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="login_iw_logo.png" translatesAutoresizingMaskIntoConstraints="NO" id="WJp-C4-gOG">
+                                <rect key="frame" x="-128" y="728" width="1024" height="236"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="1024" id="Z4B-gI-n21"/>
+                                    <constraint firstAttribute="height" constant="236" id="ZFX-Jt-dn3"/>
+                                </constraints>
+                            </imageView>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="login_inkwrk_logo.png" translatesAutoresizingMaskIntoConstraints="NO" id="viU-gp-aBO">
+                                <rect key="frame" x="129" y="461" width="510" height="102"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="510" id="LS7-nM-aTq"/>
+                                    <constraint firstAttribute="height" constant="102" id="R9x-Ro-mQD"/>
+                                </constraints>
+                            </imageView>
+                            <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="© 2014 Destiny Wireless" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="mu8-Dj-yZP">
+                                <rect key="frame" x="312" y="571" width="144" height="21"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="21" id="eR6-mW-AhU"/>
+                                    <constraint firstAttribute="width" constant="144" id="f6M-aY-InJ"/>
+                                </constraints>
+                                <fontDescription key="fontDescription" name="Lato-Regular" family="Lato" pointSize="12"/>
+                                <color key="textColor" white="0.33333333333333331" alpha="1" colorSpace="calibratedWhite"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                        </subviews>
+                        <color key="backgroundColor" red="0.17254902420000001" green="0.45098042490000001" blue="0.61568629740000003" alpha="1" colorSpace="deviceRGB"/>
+                        <constraints>
+                            <constraint firstAttribute="bottomMargin" secondItem="WJp-C4-gOG" secondAttribute="bottom" constant="60" id="9XZ-Zc-RRl"/>
+                            <constraint firstItem="yg4-hv-Bj0" firstAttribute="trailing" secondItem="W01-2w-FOf" secondAttribute="trailing" id="B4F-TF-SFB"/>
+                            <constraint firstItem="yg4-hv-Bj0" firstAttribute="leading" secondItem="W01-2w-FOf" secondAttribute="leading" id="DEi-ZZ-iOb"/>
+                            <constraint firstAttribute="centerX" secondItem="yg4-hv-Bj0" secondAttribute="centerX" id="GEw-4K-6rW"/>
+                            <constraint firstItem="yg4-hv-Bj0" firstAttribute="bottom" secondItem="W01-2w-FOf" secondAttribute="bottom" id="ISY-YJ-tZs"/>
+                            <constraint firstItem="mu8-Dj-yZP" firstAttribute="top" secondItem="viU-gp-aBO" secondAttribute="bottom" constant="8" id="Kya-6T-tYm"/>
+                            <constraint firstAttribute="centerX" secondItem="viU-gp-aBO" secondAttribute="centerX" id="WVe-Y7-H7j"/>
+                            <constraint firstAttribute="centerX" secondItem="mu8-Dj-yZP" secondAttribute="centerX" id="Y6B-1D-cDX"/>
+                            <constraint firstItem="yg4-hv-Bj0" firstAttribute="top" secondItem="W01-2w-FOf" secondAttribute="top" id="bwa-tw-dPo"/>
+                            <constraint firstAttribute="centerX" secondItem="WJp-C4-gOG" secondAttribute="centerX" id="c7h-I3-Q4o"/>
+                            <constraint firstAttribute="centerY" secondItem="viU-gp-aBO" secondAttribute="centerY" id="iGK-m0-Gbi"/>
+                        </constraints>
+                    </view>
+                    <simulatedScreenMetrics key="simulatedDestinationMetrics" type="iPad"/>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="DcW-8T-HjV" userLabel="First Responder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="252" y="299"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="login_background.png" width="1024" height="768"/>
+        <image name="login_inkwrk_logo.png" width="504" height="100"/>
+        <image name="login_iw_logo.png" width="766" height="300"/>
+    </resources>
+</document>

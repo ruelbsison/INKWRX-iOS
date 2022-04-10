@@ -1,0 +1,17 @@
+PODS:
+  - Bugsee (1.12.6)
+  - SQLite.swift (0.11.3):
+    - SQLite.swift/standard (= 0.11.3)
+  - SQLite.swift/standard (0.11.3)
+
+DEPENDENCIES:
+  - Bugsee
+  - SQLite.swift (~> 0.11.2)
+
+SPEC CHECKSUMS:
+  Bugsee: c6e0d8b4ce879d990d17d69beb839318847760fc
+  SQLite.swift: 99b36c22084427f0abbeb957556ce1528cf10bb3
+
+PODFILE CHECKSUM: 370ff92e490b90dfd9ff4cd79b1a5e742451fc6d
+
+COCOAPODS: 1.2.0
